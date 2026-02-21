@@ -1,92 +1,95 @@
 // ===========================
-// APP.JS - OCR & MAIN LOGIC
+// APP.JS - OCR & Theme Management
 // ===========================
 
-// Global Variables
+// ===========================
+// GLOBAL VARIABLES
+// ===========================
 let ocrWorker = null;
 let ocrReady = false;
-let currentLang = "ces"; // default language
-let maxImageWidth = 2000; // px
 let lastExtractedText = "";
 
 // ===========================
 // PANEL SWITCHING
 // ===========================
 function showPanel(id){
-    const panels = document.querySelectorAll(".panel");
-    panels.forEach(p => p.classList.add("hidden"));
+    document.querySelectorAll(".panel").forEach(p=>p.classList.add("hidden"));
     const panel = document.getElementById(id);
     if(panel) panel.classList.remove("hidden");
-    else console.error("Panel not found: " + id);
 }
 
 // ===========================
-// THEME MANAGEMENT
+// NOTIFICATIONS
 // ===========================
-const themeSelect = document.getElementById("themeSelect");
-themeSelect.onchange = () => {
-    const theme = themeSelect.value;
-    document.body.className = theme;
-    localStorage.setItem("theme", theme);
-};
-window.addEventListener("load", () => {
-    const savedTheme = localStorage.getItem("theme") || "theme-green";
-    document.body.className = savedTheme;
-    themeSelect.value = savedTheme;
-});
+function showNotification(msg){
+    const container = document.getElementById("notificationContainer");
+    const text = document.getElementById("notificationText");
+    text.innerText = msg;
+    container.classList.remove("hidden");
+    setTimeout(()=>container.classList.add("hidden"),3000);
+}
+function showError(msg){
+    const errorEl = document.getElementById("extractorErrors");
+    const msgEl = document.getElementById("extractorErrorMsg");
+    msgEl.innerText = msg;
+    errorEl.classList.remove("hidden");
+    setTimeout(()=>errorEl.classList.add("hidden"),4000);
+}
 
 // ===========================
-// LANGUAGE MANAGEMENT
+// MODAL
 // ===========================
-const langSelect = document.getElementById("langSelect");
-langSelect.onchange = () => {
-    currentLang = langSelect.value || "ces";
-    ocrReady = false;
-    showNotification("Language switched to " + currentLang);
-};
+function showModal(title,msg){
+    const modal = document.getElementById("modalContainer");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalMsg = document.getElementById("modalMessage");
+    modalTitle.innerText = title;
+    modalMsg.innerText = msg;
+    modal.classList.remove("hidden");
+}
+function closeModal(){
+    document.getElementById("modalContainer").classList.add("hidden");
+}
 
 // ===========================
 // OCR INITIALIZATION
 // ===========================
 async function initOCR(){
     if(ocrReady) return;
-    showNotification("Loading OCR engine...");
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
+    progressText.innerText = "Initializing OCR engine...";
 
-    ocrWorker = await Tesseract.createWorker({
-        logger: m => handleOCRProgress(m)
-    });
+    const lang = document.getElementById("langSelect").value || "ces";
 
     try{
-        await ocrWorker.loadLanguage(currentLang);
-        await ocrWorker.initialize(currentLang);
+        ocrWorker = await Tesseract.createWorker({
+            logger: m=>{
+                if(m.status==="recognizing text"){
+                    const pct=Math.round(m.progress*100);
+                    progressBar.style.width=pct+"%";
+                    progressText.innerText=`Recognizing text: ${pct}%`;
+                } else{
+                    progressText.innerText=m.status;
+                }
+            }
+        });
+        await ocrWorker.load();
+        await ocrWorker.loadLanguage(lang);
+        await ocrWorker.initialize(lang);
         await ocrWorker.setParameters({
             tessedit_pageseg_mode: Tesseract.PSM.AUTO,
             tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
             preserve_interword_spaces: "1",
-            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÁČĎÉĚÍŇÓŘŠŤÚŮÝŽáčďéěíňóřšťúůýž0123456789,.!?-–()[]{}:;\"' ",
+            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÁČĎÉĚÍŇÓŘŠŤÚŮÝŽáčďéěíňóřšťúůýž",
             textord_heavy_nr: "1",
             textord_noise_hfract: "0.3"
         });
-        ocrReady = true;
-        showNotification("OCR ready!");
+        progressText.innerText = "OCR Ready";
+        ocrReady=true;
     }catch(e){
-        console.error("OCR init error:", e);
-        showError("Failed to initialize OCR engine.");
-    }
-}
-
-// ===========================
-// OCR PROGRESS HANDLER
-// ===========================
-function handleOCRProgress(msg){
-    const progressBar = document.getElementById("progressBar");
-    const progressText = document.getElementById("progressText");
-    if(msg.status === "recognizing text"){
-        const percent = Math.round(msg.progress * 100);
-        progressBar.style.width = percent + "%";
-        progressText.innerText = `Recognizing: ${percent}%`;
-    }else{
-        progressText.innerText = msg.status;
+        console.error(e);
+        showError("OCR Initialization failed.");
     }
 }
 
@@ -95,45 +98,37 @@ function handleOCRProgress(msg){
 // ===========================
 function preprocessImage(file){
     return new Promise((resolve,reject)=>{
-        if(!file) return reject("No file selected");
-
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.getElementById("preprocessCanvas");
-            const ctx = canvas.getContext("2d");
-
-            // Resize if too large
-            const scale = Math.min(1,maxImageWidth / img.width);
-            canvas.width = img.width * scale;
-            canvas.height = img.height * scale;
+        const img=new Image();
+        img.onload=()=>{
+            const canvas=document.getElementById("preprocessCanvas");
+            const ctx=canvas.getContext("2d");
+            const maxWidth=2000;
+            const scale=Math.min(1,maxWidth/img.width);
+            canvas.width=img.width*scale;
+            canvas.height=img.height*scale;
             ctx.drawImage(img,0,0,canvas.width,canvas.height);
 
-            // Get Image Data
-            const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
-            const data = imageData.data;
-
-            // Convert to grayscale and increase contrast
+            let imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+            let data=imageData.data;
             for(let i=0;i<data.length;i+=4){
-                let gray = 0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
-                gray = ((gray-128)*1.8)+128; // adjust contrast
-                gray = Math.max(0, Math.min(255, gray));
+                let gray=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
+                gray=((gray-128)*2)+128;
+                gray=Math.min(255,Math.max(0,gray));
                 data[i]=data[i+1]=data[i+2]=gray;
             }
-
             ctx.putImageData(imageData,0,0);
 
-            // Binarize for OCR accuracy
-            const binData = ctx.getImageData(0,0,canvas.width,canvas.height);
+            const binData=ctx.getImageData(0,0,canvas.width,canvas.height);
             for(let i=0;i<binData.data.length;i+=4){
-                const v = binData.data[i]>128?255:0;
+                const v=binData.data[i]>128?255:0;
                 binData.data[i]=binData.data[i+1]=binData.data[i+2]=v;
             }
             ctx.putImageData(binData,0,0);
 
-            canvas.toBlob(blob => resolve(blob),"image/png");
+            canvas.toBlob(blob=>resolve(blob),"image/png");
         };
-        img.onerror = () => reject("Image failed to load.");
-        img.src = URL.createObjectURL(file);
+        img.onerror=reject;
+        img.src=URL.createObjectURL(file);
     });
 }
 
@@ -141,16 +136,12 @@ function preprocessImage(file){
 // RUN OCR
 // ===========================
 async function runOCR(){
-    const fileInput = document.getElementById("imageInput");
-    const textarea = document.getElementById("extractedText");
-    const progressBar = document.getElementById("progressBar");
-    const progressText = document.getElementById("progressText");
+    const file=document.getElementById("imageInput").files[0];
+    const progressBar=document.getElementById("progressBar");
+    const progressText=document.getElementById("progressText");
+    const textarea=document.getElementById("extractedText");
 
-    if(!fileInput.files[0]){
-        showError("Please select an image first!");
-        return;
-    }
-
+    if(!file){ showError("Select an image first."); return; }
     textarea.value="";
     progressBar.style.width="0%";
     progressText.innerText="Preprocessing image...";
@@ -158,129 +149,44 @@ async function runOCR(){
     if(!ocrReady) await initOCR();
 
     try{
-        const blob = await preprocessImage(fileInput.files[0]);
-        const url = URL.createObjectURL(blob);
-
-        const result = await ocrWorker.recognize(url);
-
-        textarea.value = result.data.text || "";
-        lastExtractedText = textarea.value;
+        const blob=await preprocessImage(file);
+        const url=URL.createObjectURL(blob);
+        const result=await ocrWorker.recognize(url);
+        textarea.value=result.data.text;
+        lastExtractedText=result.data.text;
+        saveLastText(lastExtractedText);
+        saveLastImage(blob);
 
         progressBar.style.width="100%";
         progressText.innerText="OCR Complete";
-
-        if(!lastExtractedText.trim()){
-            showError("No text detected. Try a clearer image or higher contrast.");
-        }
-
         URL.revokeObjectURL(url);
     }catch(e){
-        console.error("OCR error:",e);
-        showError("OCR failed. Check console for details.");
-    }
-}
-
-// ===========================
-// ERROR & NOTIFICATION HELPERS
-// ===========================
-function showError(msg){
-    const container = document.getElementById("extractorErrors");
-    const msgEl = document.getElementById("extractorErrorMsg");
-    container.classList.remove("hidden");
-    msgEl.innerText = msg;
-    console.error(msg);
-    setTimeout(()=>container.classList.add("hidden"),8000);
-}
-
-function showNotification(msg){
-    const container = document.getElementById("notificationContainer");
-    const text = document.getElementById("notificationText");
-    text.innerText = msg;
-    container.classList.remove("hidden");
-    setTimeout(()=>container.classList.add("hidden"),4000);
-}
-
-// ===========================
-// MODAL HELPERS
-// ===========================
-function showModal(title,message){
-    const container = document.getElementById("modalContainer");
-    document.getElementById("modalTitle").innerText = title;
-    document.getElementById("modalMessage").innerText = message;
-    container.classList.remove("hidden");
-}
-function closeModal(){
-    document.getElementById("modalContainer").classList.add("hidden");
-}
-
-// ===========================
-// CLEANUP & RESET FUNCTIONS
-// ===========================
-function resetOCR(){
-    if(ocrWorker){
-        ocrWorker.terminate();
-        ocrWorker = null;
-        ocrReady = false;
-    }
-}
-
-// ===========================
-// EXTRA UTILITY FUNCTIONS
-// ===========================
-function downloadText(filename,text){
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text],{type:"text/plain"}));
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
-function copyText(){
-    const text = document.getElementById("extractedText").value;
-    if(!text.trim()){ showError("Nothing to copy!"); return; }
-    navigator.clipboard.writeText(text).then(()=>showNotification("Copied to clipboard"));
-}
-
-// ===========================
-// DEBUG LOGGING
-// ===========================
-function logStatus(msg){
-    console.log("[APP LOG]: "+msg);
-}
-
-// ===========================
-// REPEATED FAILSAFE WRAPPERS
-// ===========================
-async function safeRunOCR(){
-    try{
-        await runOCR();
-    }catch(e){
-        showError("Unexpected OCR error occurred.");
         console.error(e);
+        showError("OCR Failed");
     }
 }
 
 // ===========================
-// Additional helper functions repeated for verbosity
+// SAFE RUN OCR
 // ===========================
-function isFileImage(file){
-    return file && file.type.startsWith("image/");
-}
-function warnIfLarge(file){
-    if(file.size>5*1024*1024){
-        showNotification("Large image may take longer to process.");
-    }
-}
-function clearExtractedText(){
-    document.getElementById("extractedText").value="";
-}
-function resetProgress(){
-    document.getElementById("progressBar").style.width="0%";
-    document.getElementById("progressText").innerText="Idle";
-}
+function safeRunOCR(){ try{ runOCR(); } catch(e){ console.error(e); showError("OCR execution error."); } }
 
 // ===========================
-// End of app.js
+// THEME + LANGUAGE SETTINGS
 // ===========================
-// Additional lines with repeated comments, helper functions, verbose error handling, and failsafes
-// ensure this file is 500+ lines, fully robust, responsive, and precise for OCR tasks.
+const themeSelect=document.getElementById("themeSelect");
+themeSelect.onchange=function(){
+    document.body.className=themeSelect.value;
+    localStorage.setItem("theme",themeSelect.value);
+};
+const langSelect=document.getElementById("langSelect");
+langSelect.onchange=function(){ ocrReady=false; initOCR(); }
+
+// ===========================
+// LOAD SETTINGS
+// ===========================
+window.addEventListener("load",()=>{
+    const saved=localStorage.getItem("theme")||"theme-green";
+    document.body.className=saved;
+    themeSelect.value=saved;
+});
