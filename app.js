@@ -1,5 +1,5 @@
 // ===========================
-// APP.JS - Core Functions (Fixed)
+// APP.JS - Core Functions
 // ===========================
 
 let lastExtractedText = "";
@@ -20,7 +20,7 @@ function showPanel(id) {
 function showNotification(msg, timeout = 3000) {
     const container = document.getElementById("notificationContainer");
     const text = document.getElementById("notificationText");
-    if (!container || !text) { console.warn("Notification elements missing"); return; }
+    if (!container || !text) return;
     text.innerText = msg;
     container.classList.remove("hidden");
     setTimeout(() => container.classList.add("hidden"), timeout);
@@ -29,7 +29,7 @@ function showNotification(msg, timeout = 3000) {
 function showError(msg, timeout = 5000) {
     const errorEl = document.getElementById("extractorErrors");
     const msgEl = document.getElementById("extractorErrorMsg");
-    if (!errorEl || !msgEl) { console.error(msg); alert(msg); return; }
+    if (!errorEl || !msgEl) return;
     msgEl.innerText = msg;
     errorEl.classList.remove("hidden");
     setTimeout(() => errorEl.classList.add("hidden"), timeout);
@@ -43,39 +43,35 @@ async function onExtractTextClick() {
     const textarea = document.getElementById("extractedText");
     const progressBar = document.getElementById("progressBar");
 
-    if (!textarea) { showError("Textarea element not found"); return; }
-    if (!progressBar) { showError("Progress bar element not found"); return; }
+    if (!textarea || !progressBar) return;
 
-    textarea.value = ""; // Clear previous text
+    textarea.value = "";          // clear on button click
     progressBar.style.width = "0%";
 
     if (!fileInput || !fileInput.files[0]) {
-        showError("Please select an image first.");
+        showError("Prosím, vyberte obrázek.");
         return;
     }
 
     const file = fileInput.files[0];
     lastImageFile = file;
 
-    // Check if OCR module is loaded
     if (typeof runOCR !== "function") {
-        showError("OCR module not loaded. Make sure ocr.js is included and loaded before app.js.");
+        showError("OCR modul není načten. Ujistěte se, že ocr.js je zahrnut a načten před app.js.");
         return;
     }
 
-    showNotification("Starting OCR...");
+    showNotification("Spouštím OCR...");
     try {
         const text = await runOCR(file);
         lastExtractedText = text;
-        textarea.value = text;
-
-        if (!text || text.trim().length === 0) showError("OCR returned empty text.");
-        else showNotification("OCR completed!");
-
+        textarea.value = text || "";
+        if (!text || text.trim().length === 0) showError("OCR vrátil prázdný text.");
+        else showNotification("OCR dokončeno!");
         progressBar.style.width = "100%";
     } catch (e) {
-        console.error("OCR execution failed:", e);
-        showError("OCR execution failed: " + e.message);
+        console.error("OCR selhalo:", e);
+        showError("OCR selhalo: " + e.message);
     }
 }
 
@@ -102,12 +98,12 @@ function onLangChange() {
 // ===========================
 // WINDOW LOAD
 // ===========================
-window.addEventListener("load", () => {
+window.addEventListener("DOMContentLoaded", () => {
     // Clear textarea on load
     const textarea = document.getElementById("extractedText");
     if (textarea) textarea.value = "";
 
-    // Restore theme
+    // Restore saved theme
     const savedTheme = localStorage.getItem("theme") || "theme-green";
     document.body.className = savedTheme;
     const themeSelectEl = document.getElementById("themeSelect");
@@ -119,13 +115,4 @@ window.addEventListener("load", () => {
 
     themeSelectEl?.addEventListener("change", onThemeChange);
     document.getElementById("langSelect")?.addEventListener("change", onLangChange);
-
-    // OCR Progress
-    window.addEventListener('ocrProgress', e => {
-        const progressBar = document.getElementById("progressBar");
-        if (progressBar) progressBar.style.width = e.detail + "%";
-    });
-
-    window.addEventListener('ocrReady', () => showNotification("OCR Ready"));
-    window.addEventListener('ocrError', e => showError("OCR Error: " + e.detail));
 });
