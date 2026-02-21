@@ -1,111 +1,69 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="cs">
 <head>
-
 <meta charset="UTF-8">
 <title>OCR Quiz App</title>
-
 <link rel="stylesheet" href="style.css">
-
 <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
-
 </head>
-
 <body class="theme-green">
 
 <div class="layout">
 
     <!-- SIDEBAR -->
     <div class="sidebar">
-
         <h2>OCR Quiz</h2>
-
-        <button onclick="showPanel('extractor')">
-            Extract Text
-        </button>
-
-        <button onclick="showPanel('quiz')">
-            Generate Quiz
-        </button>
-
-        <button onclick="showPanel('history')">
-            Past Quizzes
-        </button>
-
-        <button onclick="showPanel('settings')">
-            Settings
-        </button>
-
+        <button onclick="showPanel('extractor')">Extract Text</button>
+        <button onclick="showPanel('quiz')">Generate Quiz</button>
+        <button onclick="showPanel('history')">Past Quizzes</button>
+        <button onclick="showPanel('settings')">Settings</button>
     </div>
-
 
     <!-- MAIN CONTENT -->
     <div class="main">
 
-
         <!-- OCR PANEL -->
         <div id="extractor" class="panel">
-
             <h2>Text Extractor</h2>
-
             <input type="file" id="imageInput">
-
-            <button onclick="runOCR()">
-                Extract Text
-            </button>
-
-            <textarea id="extractedText"></textarea>
-
+            <button onclick="runOCR()">Extract Text</button>
+            <div class="progress-container">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+            <div id="progressText">Idle</div>
+            <textarea id="extractedText" placeholder="Extracted text appears here"></textarea>
+            <canvas id="preprocessCanvas" style="display:none;"></canvas>
         </div>
-
 
         <!-- QUIZ PANEL -->
         <div id="quiz" class="panel hidden">
-
             <h2>Quiz Generator</h2>
-
-            <button onclick="createQuiz()">
-                Generate Quiz From Text
-            </button>
-
+            <button onclick="createQuiz()">Generate Quiz From Text</button>
             <div id="quizArea"></div>
-
         </div>
-
 
         <!-- HISTORY PANEL -->
         <div id="history" class="panel hidden">
-
             <h2>Past Quizzes</h2>
-
             <div id="historyArea"></div>
-
         </div>
-
 
         <!-- SETTINGS PANEL -->
         <div id="settings" class="panel hidden">
-
             <h2>Settings</h2>
-
+            <label for="themeSelect">Theme:</label>
             <select id="themeSelect">
-
                 <option value="theme-green">Green</option>
                 <option value="theme-darkgrey">Dark Grey</option>
                 <option value="theme-black">Black</option>
                 <option value="theme-white">White</option>
-
             </select>
-
         </div>
-
 
     </div>
 
 </div>
 
 <script src="app.js"></script>
-
 </body>
 </html>
