@@ -3,51 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OCR & Quiz App</title>
+<title>OCR & Quiz Application</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="theme-green">
 
 <div class="sidebar">
     <h2>Menu</h2>
-    <button id="panelExtractorBtn">Text Extractor</button>
-    <button id="panelQuizBtn">Quiz Generator</button>
-    <button id="panelSettingsBtn">Settings</button>
+    <button id="extractorBtn">Text Extractor</button>
+    <button id="quizBtn">Quiz Generator</button>
+    <button id="settingsBtn">Settings</button>
 </div>
 
-<div class="main-content">
+<div class="main">
 
     <div id="panelExtractor" class="panel">
         <h1>Text Extractor</h1>
         <input type="file" id="imageInput" accept="image/*">
-        <button id="extractBtn">Extract Text</button>
+        <button id="runOCRBtn">Extract Text</button>
         <div class="progress-container">
             <div id="progressBar" class="progress-bar"></div>
         </div>
         <textarea id="extractedText" placeholder="Extracted text will appear here..."></textarea>
-        <div id="extractorErrors" class="error hidden">
-            <span id="extractorErrorMsg"></span>
-        </div>
+        <div id="extractorError" class="error hidden"></div>
     </div>
 
     <div id="panelQuiz" class="panel hidden">
         <h1>Quiz Generator</h1>
-        <textarea id="quizInput" placeholder="Use extracted text to generate quiz..."></textarea>
+        <textarea id="quizInput" placeholder="Paste text here..."></textarea>
         <button id="generateQuizBtn">Generate Quiz</button>
         <div id="quizOutput"></div>
     </div>
 
     <div id="panelSettings" class="panel hidden">
         <h1>Settings</h1>
-        <label for="themeSelect">Theme:</label>
+        <label>Theme:</label>
         <select id="themeSelect">
             <option value="theme-green">Green</option>
             <option value="theme-dark">Dark</option>
             <option value="theme-darkgrey">Dark Grey</option>
             <option value="theme-white">White</option>
         </select>
-
-        <label for="langSelect">Language:</label>
+        <label>Language:</label>
         <select id="langSelect">
             <option value="ces">Czech</option>
             <option value="eng">English</option>
@@ -56,17 +53,7 @@
 
 </div>
 
-<div id="notificationContainer" class="notification hidden">
-    <span id="notificationText"></span>
-</div>
-
-<div id="modalContainer" class="modal hidden">
-    <div class="modal-content">
-        <h2 id="modalTitle">Title</h2>
-        <p id="modalMessage">Message goes here</p>
-        <button id="modalCloseBtn">Close</button>
-    </div>
-</div>
+<div id="notification" class="notification hidden"></div>
 
 <script src="app.js"></script>
 <script src="ocr.js"></script>

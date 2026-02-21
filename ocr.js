@@ -1,41 +1,35 @@
 // ===========================
-// OCR.JS - Image Extraction
+// OCR.JS
 // ===========================
 let ocrWorker = null;
 let ocrReady = false;
 
-async function initOCR(lang="ces") {
+async function initOCR(lang = "ces") {
     if (ocrReady) return;
-    try {
-        ocrWorker = await Tesseract.createWorker({
-            logger: m => {
-                const progressBar = document.getElementById("progressBar");
-                const progressText = document.getElementById("notificationText");
-                if (!progressBar || !progressText) return;
-                if (m.status === "recognizing text") {
-                    const pct = Math.round(m.progress * 100);
-                    progressBar.style.width = pct + "%";
-                    progressText.innerText = `Rozpoznávání textu: ${pct}%`;
-                } else {
-                    progressText.innerText = m.status;
-                }
+    ocrWorker = await Tesseract.createWorker({
+        logger: m => {
+            const bar = document.getElementById("progressBar");
+            const notification = document.getElementById("notification");
+            if (!bar || !notification) return;
+            if (m.status === "recognizing text") {
+                const pct = Math.round(m.progress * 100);
+                bar.style.width = pct + "%";
+                notification.innerText = `Recognizing text: ${pct}%`;
+            } else {
+                notification.innerText = m.status;
             }
-        });
-        await ocrWorker.load();
-        await ocrWorker.loadLanguage(lang);
-        await ocrWorker.initialize(lang);
-        ocrReady = true;
-    } catch (e) {
-        console.error(e);
-        const progressText = document.getElementById("notificationText");
-        if (progressText) progressText.innerText = "OCR inicializace selhala";
-    }
+        }
+    });
+    await ocrWorker.load();
+    await ocrWorker.loadLanguage(lang);
+    await ocrWorker.initialize(lang);
+    ocrReady = true;
 }
 
 async function runOCR(file) {
-    if (!ocrWorker) throw new Error("OCR není připraven");
-    const imgUrl = URL.createObjectURL(file);
-    const result = await ocrWorker.recognize(imgUrl);
-    URL.revokeObjectURL(imgUrl);
+    if (!ocrWorker) throw new Error("OCR worker not initialized.");
+    const url = URL.createObjectURL(file);
+    const result = await ocrWorker.recognize(url);
+    URL.revokeObjectURL(url);
     return result.data.text || "";
 }
