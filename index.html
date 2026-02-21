@@ -10,7 +10,7 @@
 
 <div class="layout">
 
-  <!-- SIDEBAR -->
+  <!-- Sidebar -->
   <div class="sidebar">
     <h2>OCR Quiz</h2>
     <button onclick="showPanel('extractor')">Extract Text</button>
@@ -19,13 +19,13 @@
     <button onclick="showPanel('settings')">Settings</button>
   </div>
 
-  <!-- MAIN CONTENT -->
+  <!-- Main Content -->
   <div class="main">
 
-    <!-- TEXT EXTRACTOR -->
+    <!-- Text Extractor -->
     <div id="extractor" class="panel">
       <h2>Text Extractor</h2>
-      <input type="file" id="imageInput">
+      <input type="file" id="imageInput" accept="image/*">
       <button onclick="runOCR()">Extract Text</button>
       <div class="progress-container">
         <div id="progressBar" class="progress-bar"></div>
@@ -35,20 +35,20 @@
       <canvas id="preprocessCanvas" style="display:none;"></canvas>
     </div>
 
-    <!-- QUIZ GENERATOR -->
+    <!-- Quiz Generator -->
     <div id="quiz" class="panel hidden">
       <h2>Quiz Generator</h2>
-      <button onclick="createQuiz()">Generate Quiz From Text</button>
+      <button onclick="createQuiz()">Generate Quiz from Text</button>
       <div id="quizArea"></div>
     </div>
 
-    <!-- PAST QUIZZES -->
+    <!-- History -->
     <div id="history" class="panel hidden">
       <h2>Past Quizzes</h2>
       <div id="historyArea"></div>
     </div>
 
-    <!-- SETTINGS -->
+    <!-- Settings -->
     <div id="settings" class="panel hidden">
       <h2>Settings</h2>
       <label for="themeSelect">Theme:</label>
@@ -70,6 +70,7 @@
   </div>
 </div>
 
+<script src="storage.js"></script>
 <script src="quiz.js"></script>
 <script src="app.js"></script>
 </body>
