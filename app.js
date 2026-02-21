@@ -1,5 +1,5 @@
 // ===========================
-// APP.JS - Advanced Czech OCR & Theme Management
+// APP.JS - Czech OCR Max Precision & Theme Management
 // ===========================
 
 // ===========================
@@ -10,8 +10,8 @@ let ocrReady = false;
 let lastExtractedText = "";
 let lastProcessedImage = null;
 let ocrHistory = [];
-let maxCanvasWidth = 2500; // allow larger images for higher accuracy
-let binarizeThreshold = 160; // fine-tuned for Czech diacritics
+let maxCanvasWidth = 2500; // Large images supported
+let binarizeThreshold = 160; // fine-tuned for Czech text
 let sharpenKernel = [
   0, -1, 0,
   -1, 5, -1,
@@ -100,7 +100,7 @@ async function initOCR(){
             tessedit_pageseg_mode: Tesseract.PSM.AUTO,
             tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
             preserve_interword_spaces: "1",
-            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÁČĎÉĚÍŇÓŘŠŤÚŮÝŽáčďéěíňóřšťúůýž0123456789.,:;-!?()[]",
+            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÁČĎÉĚÍŇÓŘŠŤÚŮÝŽáčďéěíňóřšťúůýž0123456789.,:;-!?()[]/\\\"'<>@#$%^&*_+=~`|{}",
             textord_heavy_nr: "1",
             textord_noise_hfract: "0.2",
             load_system_dawg: "0",
@@ -115,7 +115,7 @@ async function initOCR(){
 }
 
 // ===========================
-// IMAGE PREPROCESSING WITH SHARPEN + DENOISE
+// IMAGE PREPROCESSING + SHARPEN + DENOISE
 // ===========================
 function preprocessImage(file){
     return new Promise((resolve,reject)=>{
@@ -133,15 +133,15 @@ function preprocessImage(file){
             let imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
             let data = imageData.data;
 
-            // Grayscale + contrast + sharpen
+            // Grayscale + contrast
             for(let i=0;i<data.length;i+=4){
-                let gray = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+                let gray = 0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
                 gray = ((gray-128)*1.8)+128;
                 gray=Math.min(255,Math.max(0,gray));
                 data[i]=data[i+1]=data[i+2]=gray;
             }
 
-            // Apply convolution sharpening
+            // Convolution sharpen
             const copy = new Uint8ClampedArray(data);
             const w = canvas.width;
             const h = canvas.height;
@@ -175,7 +175,7 @@ function preprocessImage(file){
                 resolve(blob);
             },"image/png");
         };
-        img.onerror = reject;
+        img.onerror=reject;
         img.src = URL.createObjectURL(file);
     });
 }
@@ -200,15 +200,14 @@ async function runOCR(){
         const blob = await preprocessImage(file);
         const url = URL.createObjectURL(blob);
 
-        // Retry logic for higher precision
-        let attempts = 2;
+        // Multi-pass recognition for extreme precision
         let result = null;
-        for(let i=0;i<attempts;i++){
+        for(let pass=0;pass<3;pass++){
             try{
                 result = await ocrWorker.recognize(url);
                 if(result.data.text.trim()!="") break;
             }catch(e){
-                console.warn("Retry OCR attempt",i+1,e);
+                console.warn("OCR pass",pass+1,"failed",e);
             }
         }
 
@@ -218,6 +217,7 @@ async function runOCR(){
             return;
         }
 
+        // Save output
         textarea.value=result.data.text;
         lastExtractedText=result.data.text;
         ocrHistory.push(lastExtractedText);
@@ -226,11 +226,10 @@ async function runOCR(){
 
         progressBar.style.width="100%";
         progressText.innerText="OCR Complete";
-
         URL.revokeObjectURL(url);
     }catch(e){
         console.error(e);
-        showError("OCR execution error: "+e.message);
+        showError("OCR execution critical error: "+e.message);
         progressText.innerText="OCR Failed";
     }
 }
@@ -238,29 +237,28 @@ async function runOCR(){
 // ===========================
 // SAFE RUN OCR
 // ===========================
-function safeRunOCR(){ try{ runOCR(); }catch(e){ console.error(e); showError("OCR execution critical error."); } }
+function safeRunOCR(){ try{ runOCR(); }catch(e){ console.error(e); showError("OCR critical error."); } }
 
 // ===========================
 // THEME + LANGUAGE SETTINGS
 // ===========================
-const themeSelect=document.getElementById("themeSelect");
+const themeSelect = document.getElementById("themeSelect");
 themeSelect.onchange=function(){
-    document.body.className=themeSelect.value;
+    document.body.className = themeSelect.value;
     localStorage.setItem("theme",themeSelect.value);
 };
 
-const langSelect=document.getElementById("langSelect");
-langSelect.onchange=function(){ 
+const langSelect = document.getElementById("langSelect");
+langSelect.onchange=function(){
     ocrReady=false;
     initOCR();
 };
 
 // ===========================
-// LOAD SETTINGS
+// LOAD SETTINGS ON START
 // ===========================
 window.addEventListener("load",()=>{
-    const saved=localStorage.getItem("theme")||"theme-green";
-    document.body.className=saved;
-    themeSelect.value=saved;
+    const saved = localStorage.getItem("theme") || "theme-green";
+    document.body.className = saved;
+    themeSelect.value = saved;
 });
-
