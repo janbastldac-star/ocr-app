@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Offline OCR Text Extractor</title>
+
+<!-- Tesseract.js from CDN (works offline if you download files later) -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f0f0f0;
+}
+
+.container {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 500px;
+  margin: auto;
+}
+
+h2 {
+  text-align: center;
+}
+
+button {
+  padding: 10px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+textarea {
+  width: 100%;
+  height: 200px;
+  margin-top: 10px;
+  resize: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>Offline OCR Text Extractor</h2>
+
+  <input type="file" id="imageInput" accept="image/*">
+  <button onclick="extractText()">Extract Text</button>
+
+  <textarea id="output" placeholder="Extracted text will appear here"></textarea>
+  <button onclick="downloadText()">Download as TXT</button>
+
+  <p id="status"></p>
+</div>
+
+<script>
+async function extractText() {
+  const file = document.getElementById('imageInput').files[0];
+  if (!file) {
+    alert("Please upload an image first.");
+    return;
+  }
+
+  document.getElementById("status").innerText = "Processing...";
+
+  const result = await Tesseract.recognize(
+    file,
+    'eng', // Language: English
+    {
+      logger: m => {
+        // Show progress percentage
+        if (m.progress) {
+          document.getElementById("status").innerText =
+            "Processing: " + Math.round(m.progress * 100) + "%";
+        }
+      }
+    }
+  );
+
+  document.getElementById("output").value = result.data.text;
+  document.getElementById("status").innerText = "Done!";
+}
+
+function downloadText() {
+  const text = document.getElementById("output").value;
+  if (!text) {
+    alert("No text to download.");
+    return;
+  }
+
+  const blob = new Blob([text], { type: "text/plain" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "extracted_text.txt";
+  link.click();
+}
+</script>
+
+</body>
+</html>
