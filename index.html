@@ -17,7 +17,6 @@
 
 <div class="main-content">
 
-    <!-- Text Extractor Panel -->
     <div id="panelExtractor" class="panel">
         <h1>Text Extractor</h1>
         <input type="file" id="imageInput" accept="image/*">
@@ -31,7 +30,6 @@
         </div>
     </div>
 
-    <!-- Quiz Generator Panel -->
     <div id="panelQuiz" class="panel hidden">
         <h1>Quiz Generator</h1>
         <textarea id="quizInput" placeholder="Use extracted text to generate quiz..."></textarea>
@@ -39,7 +37,6 @@
         <div id="quizOutput"></div>
     </div>
 
-    <!-- Settings Panel -->
     <div id="panelSettings" class="panel hidden">
         <h1>Settings</h1>
         <label for="themeSelect">Theme:</label>
@@ -59,20 +56,21 @@
 
 </div>
 
-<!-- Notification -->
 <div id="notificationContainer" class="notification hidden">
     <span id="notificationText"></span>
 </div>
 
-<!-- Modal -->
 <div id="modalContainer" class="modal hidden">
     <div class="modal-content">
-        <h2 id="modalTitle"></h2>
-        <p id="modalMessage"></p>
+        <h2 id="modalTitle">Title</h2>
+        <p id="modalMessage">Message goes here</p>
         <button id="modalCloseBtn">Close</button>
     </div>
 </div>
 
 <script src="app.js"></script>
+<script src="ocr.js"></script>
+<script src="quiz.js"></script>
+<script src="storage.js"></script>
 </body>
 </html>
