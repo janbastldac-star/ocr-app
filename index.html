@@ -2,20 +2,46 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultimate OCR Extractor</title>
+<title>OCR Quiz Generator</title>
 <link rel="stylesheet" href="style.css">
+
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="ocr.js" defer></script>
+
 </head>
-<body>
-<div class="container">
-<h2>Ultimate OCR Extractor</h2>
-<input type="file" id="imageInput" accept="image/*" multiple capture="environment">
-<button id="extractBtn">Extract Text</button>
-<textarea id="output" placeholder="Extracted text will appear here"></textarea>
-<button id="downloadBtn">Download TXT</button>
-<p id="status"></p>
-</div>
+<body class="dark">
+
+<header>
+<h1>OCR Quiz Generator</h1>
+
+<select id="themeSelector">
+<option value="dark">Dark Green</option>
+<option value="black">Black</option>
+<option value="grey">Grey</option>
+</select>
+
+</header>
+
+<section class="card">
+
+<input type="file" id="imageInput">
+
+<button onclick="runOCR()">Extract Text</button>
+
+<textarea id="extractedText"></textarea>
+
+<button onclick="generateQuiz()">Generate Quiz</button>
+
+</section>
+
+<section class="card">
+
+<div id="quizContainer"></div>
+
+</section>
+
+<script src="app.js"></script>
+<script src="quiz.js"></script>
+<script src="storage.js"></script>
+
 </body>
 </html>
