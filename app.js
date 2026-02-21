@@ -1,22 +1,11 @@
 // ===========================
-// APP.JS - Ultimate Czech OCR
+// APP.JS - OCR & UI Management
 // ===========================
 
-// ===========================
-// GLOBAL VARIABLES
-// ===========================
 let ocrWorker = null;
 let ocrReady = false;
 let lastExtractedText = "";
 let lastProcessedImage = null;
-let ocrHistory = [];
-const maxCanvasWidth = 2500;
-const sharpenKernel = [
-  0, -1, 0,
-  -1, 5, -1,
-  0, -1, 0
-];
-const binarizeThreshold = 150;
 
 // ===========================
 // PANEL SWITCHING
@@ -66,7 +55,7 @@ async function initOCR() {
 
   const progressBar = document.getElementById("progressBar");
   const progressText = document.getElementById("progressText");
-  progressText.innerText = "Initializing OCR engine...";
+  progressText.innerText = "Initializing OCR...";
 
   const lang = document.getElementById("langSelect").value || "ces";
 
@@ -106,74 +95,6 @@ async function initOCR() {
 }
 
 // ===========================
-// IMAGE PREPROCESSING
-// ===========================
-function preprocessImage(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.getElementById("preprocessCanvas");
-      const ctx = canvas.getContext("2d");
-
-      const scale = Math.min(1, maxCanvasWidth / img.width);
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let data = imageData.data;
-
-      // Grayscale + gamma correction
-      for (let i = 0; i < data.length; i += 4) {
-        let gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        gray = 255 * Math.pow(gray / 255, 0.9); // slight gamma correction
-        data[i] = data[i + 1] = data[i + 2] = gray;
-      }
-
-      // Convolution sharpening
-      const copy = new Uint8ClampedArray(data);
-      const w = canvas.width;
-      const h = canvas.height;
-      for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          for (let c = 0; c < 3; c++) {
-            let val = 0;
-            let k = 0;
-            for (let ky = -1; ky <= 1; ky++) {
-              for (let kx = -1; kx <= 1; kx++) {
-                val += copy[4 * ((y + ky) * w + (x + kx)) + c] * sharpenKernel[k++];
-              }
-            }
-            data[4 * (y * w + x) + c] = Math.min(255, Math.max(0, val));
-          }
-        }
-      }
-      ctx.putImageData(imageData, 0, 0);
-
-      // Adaptive binarization for spaces
-      const binData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-          const i = (y * canvas.width + x) * 4;
-          const v = binData.data[i];
-          binData.data[i] = binData.data[i + 1] = binData.data[i + 2] =
-            v > binarizeThreshold ? 255 : 0;
-        }
-      }
-      ctx.putImageData(binData, 0, 0);
-
-      canvas.toBlob(blob => {
-        lastProcessedImage = blob;
-        resolve(blob);
-      }, "image/png");
-    };
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
-  });
-}
-
-// ===========================
 // RUN OCR
 // ===========================
 async function runOCR() {
@@ -182,48 +103,35 @@ async function runOCR() {
   const progressText = document.getElementById("progressText");
   const textarea = document.getElementById("extractedText");
 
-  if (!file) {
-    showError("Select an image first.");
-    return;
-  }
+  if (!file) { showError("Select an image first."); return; }
 
   textarea.value = "";
   progressBar.style.width = "0%";
-  progressText.innerText = "Preprocessing image...";
+  progressText.innerText = "Preparing image...";
 
   if (!ocrReady) await initOCR();
 
   try {
-    const blob = await preprocessImage(file);
-    const url = URL.createObjectURL(blob);
+    // Use preparation.js to preprocess the image
+    const preparedBlob = await window.prepareImageForOCR(file);
+    lastProcessedImage = preparedBlob;
 
-    // OCR multi-pass & line segmentation for extreme precision
-    let result = null;
-    for (let pass = 0; pass < 3; pass++) {
-      try {
-        result = await ocrWorker.recognize(url);
-        if (result.data.text.trim() !== "") break;
-      } catch (e) {
-        console.warn("OCR pass", pass + 1, "failed", e);
-      }
-    }
+    progressText.innerText = "Running OCR...";
 
-    if (!result || !result.data || !result.data.text) {
-      showError("OCR Failed: No text detected.");
-      progressText.innerText = "OCR Failed";
-      return;
-    }
+    const url = URL.createObjectURL(preparedBlob);
+    const result = await ocrWorker.recognize(url);
 
-    // Post-processing for proper spaces and line breaks
+    // Post-processing: normalize spaces, punctuation, and line breaks
     let fixedText = result.data.text
       .replace(/\s+/g, ' ')
       .replace(/\s*([.,;:!?()])\s*/g, '$1 ')
-      .replace(/\s*-\s*/g, '-') // preserve hyphenated words
+      .replace(/\s*-\s*/g, '-') 
       .trim();
 
     textarea.value = fixedText;
     lastExtractedText = fixedText;
-    ocrHistory.push(lastExtractedText);
+
+    // Save for history
     saveLastText(lastExtractedText);
     saveLastImage(lastProcessedImage);
 
@@ -232,7 +140,7 @@ async function runOCR() {
     URL.revokeObjectURL(url);
   } catch (e) {
     console.error(e);
-    showError("OCR execution critical error: " + e.message);
+    showError("OCR Failed: " + e.message);
     progressText.innerText = "OCR Failed";
   }
 }
