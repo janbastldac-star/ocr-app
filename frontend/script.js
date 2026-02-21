@@ -4,17 +4,33 @@ const ocrTextArea = document.getElementById('ocrText');
 const generateBtn = document.getElementById('generateQuiz');
 const quizOutput = document.getElementById('quizOutput');
 
-extractBtn.addEventListener('click', () => {
+extractBtn.addEventListener('click', async () => {
   const file = imageInput.files[0];
   if (!file) return alert('Select an image first.');
 
-  Tesseract.recognize(
-    file,
-    'ces',  // Czech language
-    { logger: m => console.log(m) }
-  ).then(({ data: { text } }) => {
+  ocrTextArea.value = 'Processing...';
+
+  // Create a URL for Tesseract
+  const imageURL = URL.createObjectURL(file);
+
+  try {
+    const worker = Tesseract.createWorker({
+      logger: m => console.log(m)
+    });
+
+    await worker.load();
+    await worker.loadLanguage('ces');          // Load Czech
+    await worker.initialize('ces');            // Initialize Czech
+    await worker.setParameters({ tessdata: './tessdata/' }); // Path to your traineddata folder
+
+    const { data: { text } } = await worker.recognize(imageURL);
+
     ocrTextArea.value = text;
-  });
+    await worker.terminate();
+  } catch (err) {
+    console.error(err);
+    ocrTextArea.value = 'OCR failed. Check console for details.';
+  }
 });
 
 generateBtn.addEventListener('click', async () => {
@@ -22,22 +38,19 @@ generateBtn.addEventListener('click', async () => {
   const numQuestions = document.getElementById('numQuestions').value;
   const questionType = document.getElementById('questionType').value;
 
-  const response = await fetch('/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ recognizedText, numQuestions, questionType })
-  });
+  if (!recognizedText) return alert('No text to generate quiz from.');
 
-  const data = await response.json();
-  quizOutput.innerText = data.quiz;
-});
-Tesseract.recognize(
-  file,
-  'ces', // Czech language
-  {
-    logger: m => console.log(m),
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0_best', // CDN for traineddata
+  try {
+    const response = await fetch('/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recognizedText, numQuestions, questionType })
+    });
+
+    const data = await response.json();
+    quizOutput.innerText = data.quiz;
+  } catch (err) {
+    console.error(err);
+    quizOutput.innerText = 'Quiz generation failed.';
   }
-).then(({ data: { text } }) => {
-  ocrTextArea.value = text;
 });

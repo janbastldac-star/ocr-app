@@ -1,15 +1,29 @@
-<input type="file" id="imageUpload" accept="image/*">
-<button id="extractText">Extract Text</button>
-<textarea id="ocrText" rows="5" placeholder="Recognized text will appear here..."></textarea>
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <title>Czech OCR Quiz Generator</title>
+</head>
+<body>
+  <h1>Czech OCR Quiz Generator</h1>
 
-<input type="number" id="numQuestions" placeholder="Number of questions">
-<select id="questionType">
-  <option value="mcq">Multiple Choice</option>
-  <option value="tf">True/False</option>
-  <option value="short">Short Answer</option>
-</select>
-<button id="generateQuiz">Generate Quiz</button>
-<div id="quizOutput"></div>
+  <input type="file" id="imageUpload" accept="image/*">
+  <button id="extractText">Extract Text</button>
+  <br><br>
+  <textarea id="ocrText" rows="6" cols="50" placeholder="Recognized text will appear here..."></textarea>
+  <br><br>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
-<script src="script.js"></script>
+  <input type="number" id="numQuestions" placeholder="Number of questions">
+  <select id="questionType">
+    <option value="mcq">Multiple Choice</option>
+    <option value="tf">True/False</option>
+    <option value="short">Short Answer</option>
+  </select>
+  <button id="generateQuiz">Generate Quiz</button>
+
+  <div id="quizOutput" style="margin-top:20px; white-space: pre-wrap;"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
