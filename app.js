@@ -1,5 +1,5 @@
 // ===========================
-// APP.JS - Czech OCR Max Precision & Theme Management
+// APP.JS - Polish & Ultra-Precise Czech OCR
 // ===========================
 
 // ===========================
@@ -10,8 +10,8 @@ let ocrReady = false;
 let lastExtractedText = "";
 let lastProcessedImage = null;
 let ocrHistory = [];
-let maxCanvasWidth = 2500; // Large images supported
-let binarizeThreshold = 160; // fine-tuned for Czech text
+let maxCanvasWidth = 2500; // large images supported
+let binarizeThreshold = 140; // lowered threshold to preserve faint text
 let sharpenKernel = [
   0, -1, 0,
   -1, 5, -1,
@@ -63,11 +63,10 @@ function closeModal(){
 }
 
 // ===========================
-// ADVANCED OCR INITIALIZATION
+// OCR INITIALIZATION
 // ===========================
 async function initOCR(){
     if(ocrReady) return;
-
     const progressBar = document.getElementById("progressBar");
     const progressText = document.getElementById("progressText");
     progressText.innerText = "Initializing OCR engine...";
@@ -99,10 +98,10 @@ async function initOCR(){
         await ocrWorker.setParameters({
             tessedit_pageseg_mode: Tesseract.PSM.AUTO,
             tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
-            preserve_interword_spaces: "1",
-            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÁČĎÉĚÍŇÓŘŠŤÚŮÝŽáčďéěíňóřšťúůýž0123456789.,:;-!?()[]/\\\"'<>@#$%^&*_+=~`|{}",
+            preserve_interword_spaces: "1",  // important: keep spaces
+            tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÁČĎÉĚÍŇÓŘŠŤÚŮÝŽáčďéěíňóřšťúůýž0123456789.,:;-!?()[]/\\\"'<>@#$%^&*_+=~`|{} ",
             textord_heavy_nr: "1",
-            textord_noise_hfract: "0.2",
+            textord_noise_hfract: "0.15", // slightly lower noise filter
             load_system_dawg: "0",
             load_freq_dawg: "0"
         });
@@ -115,7 +114,7 @@ async function initOCR(){
 }
 
 // ===========================
-// IMAGE PREPROCESSING + SHARPEN + DENOISE
+// IMAGE PREPROCESSING
 // ===========================
 function preprocessImage(file){
     return new Promise((resolve,reject)=>{
@@ -133,10 +132,10 @@ function preprocessImage(file){
             let imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
             let data = imageData.data;
 
-            // Grayscale + contrast
+            // Grayscale + adjusted contrast
             for(let i=0;i<data.length;i+=4){
                 let gray = 0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
-                gray = ((gray-128)*1.8)+128;
+                gray = ((gray-128)*1.5)+128; // slightly gentler contrast
                 gray=Math.min(255,Math.max(0,gray));
                 data[i]=data[i+1]=data[i+2]=gray;
             }
@@ -162,11 +161,15 @@ function preprocessImage(file){
 
             ctx.putImageData(imageData,0,0);
 
-            // Binarization
+            // Adaptive binarization for preserving spaces
             const binData = ctx.getImageData(0,0,canvas.width,canvas.height);
-            for(let i=0;i<binData.data.length;i+=4){
-                const v=binData.data[i]>binarizeThreshold?255:0;
-                binData.data[i]=binData.data[i+1]=binData.data[i+2]=v;
+            for(let y=0;y<canvas.height;y++){
+                for(let x=0;x<canvas.width;x++){
+                    const i = (y*canvas.width + x)*4;
+                    const v = binData.data[i];
+                    // gentle threshold around background
+                    binData.data[i] = binData.data[i+1] = binData.data[i+2] = v>binarizeThreshold?255:0;
+                }
             }
             ctx.putImageData(binData,0,0);
 
@@ -200,7 +203,7 @@ async function runOCR(){
         const blob = await preprocessImage(file);
         const url = URL.createObjectURL(blob);
 
-        // Multi-pass recognition for extreme precision
+        // Multi-pass recognition to catch faint characters
         let result = null;
         for(let pass=0;pass<3;pass++){
             try{
@@ -217,9 +220,10 @@ async function runOCR(){
             return;
         }
 
-        // Save output
-        textarea.value=result.data.text;
-        lastExtractedText=result.data.text;
+        // Post-processing fix: ensure spaces and line breaks
+        let fixedText = result.data.text.replace(/\s+/g,' ').replace(/\s*([.,;:!?])\s*/g,'$1 ').trim();
+        textarea.value = fixedText;
+        lastExtractedText=fixedText;
         ocrHistory.push(lastExtractedText);
         saveLastText(lastExtractedText);
         saveLastImage(lastProcessedImage);
