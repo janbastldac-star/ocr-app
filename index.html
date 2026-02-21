@@ -3,51 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Offline OCR Text Extractor</title>
+<title>Advanced OCR Text Extractor</title>
 
-<!-- Tesseract.js from CDN (works offline if you download files later) -->
+<!-- Tesseract.js CDN (pokud chceš offline, stáhni tesseract.min.js a worker.min.js do stejné složky) -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-  background: #f0f0f0;
-}
-
-.container {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 500px;
-  margin: auto;
-}
-
-h2 {
-  text-align: center;
-}
-
-button {
-  padding: 10px;
-  margin-top: 10px;
-  width: 100%;
-}
-
-textarea {
-  width: 100%;
-  height: 200px;
-  margin-top: 10px;
-  resize: none;
-}
+body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+.container { background: #fff; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; }
+h2 { text-align: center; }
+input, button { width: 100%; margin-top: 10px; padding: 10px; }
+textarea { width: 100%; height: 200px; margin-top: 10px; resize: none; }
+#status { margin-top: 10px; font-weight: bold; text-align: center; }
 </style>
 </head>
 
 <body>
 
 <div class="container">
-  <h2>Offline OCR Text Extractor</h2>
+  <h2>Advanced OCR Extractor</h2>
 
-  <input type="file" id="imageInput" accept="image/*">
+  <input type="file" id="imageInput" accept="image/*" multiple capture="environment">
   <button onclick="extractText()">Extract Text</button>
 
   <textarea id="output" placeholder="Extracted text will appear here"></textarea>
@@ -57,39 +33,63 @@ textarea {
 </div>
 
 <script>
-async function extractText() {
-  const file = document.getElementById('imageInput').files[0];
-  if (!file) {
-    alert("Please upload an image first.");
-    return;
-  }
+async function preprocessImage(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
 
+      // Grayscale + simple contrast enhancement
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        let gray = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+        gray = Math.min(255, Math.max(0, (gray-128)*1.5 + 128)); // contrast
+        data[i] = data[i+1] = data[i+2] = gray;
+      }
+      ctx.putImageData(imageData, 0, 0);
+      canvas.toBlob(resolve, "image/png");
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function extractText() {
+  const files = document.getElementById('imageInput').files;
+  if (!files.length) { alert("Please upload at least one image."); return; }
+
+  document.getElementById("output").value = "";
   document.getElementById("status").innerText = "Processing...";
 
-  const result = await Tesseract.recognize(
-    file,
-    'eng', // Language: English
-    {
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const preprocessedFile = await preprocessImage(file);
+
+    const result = await Tesseract.recognize(preprocessedFile, 'eng+ces', {
       logger: m => {
-        // Show progress percentage
         if (m.progress) {
           document.getElementById("status").innerText =
-            "Processing: " + Math.round(m.progress * 100) + "%";
+            "Processing image " + (i+1) + " of " + files.length + ": " + Math.round(m.progress*100) + "%";
         }
       }
-    }
-  );
+    });
 
-  document.getElementById("output").value = result.data.text;
+    // Optional: filter out very short lines (likely non-text / images)
+    const lines = result.data.text.split('\n');
+    const filtered = lines.filter(line => line.trim().length > 2);
+    document.getElementById("output").value += filtered.join('\n') + "\n\n";
+  }
+
   document.getElementById("status").innerText = "Done!";
 }
 
 function downloadText() {
   const text = document.getElementById("output").value;
-  if (!text) {
-    alert("No text to download.");
-    return;
-  }
+  if (!text) { alert("No text to download."); return; }
 
   const blob = new Blob([text], { type: "text/plain" });
   const link = document.createElement("a");
