@@ -1,0 +1,15 @@
+<input type="file" id="imageUpload" accept="image/*">
+<button id="extractText">Extract Text</button>
+<textarea id="ocrText" rows="5" placeholder="Recognized text will appear here..."></textarea>
+
+<input type="number" id="numQuestions" placeholder="Number of questions">
+<select id="questionType">
+  <option value="mcq">Multiple Choice</option>
+  <option value="tf">True/False</option>
+  <option value="short">Short Answer</option>
+</select>
+<button id="generateQuiz">Generate Quiz</button>
+<div id="quizOutput"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+<script src="script.js"></script>
