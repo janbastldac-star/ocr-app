@@ -1,146 +1,100 @@
 // ===========================
-// APP.JS - Czech OCR with Number Preservation
+// APP.JS - Core Functions
 // ===========================
 
-let ocrWorker = null;
-let ocrReady = false;
 let lastExtractedText = "";
-let lastImage = null;
+let lastImageFile = null;
 
 // ===========================
-// OCR Initialization
+// PANEL SWITCHING
 // ===========================
-async function initOCR() {
-    if (ocrReady) return;
-
-    const progressBar = document.getElementById("progressBar");
-    const progressText = document.getElementById("progressText");
-    progressText.innerText = "Initializing OCR...";
-
-    const lang = document.getElementById("langSelect").value || "ces";
-
-    try {
-        ocrWorker = await Tesseract.createWorker({
-            workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/worker.min.js',
-            langPath: './tessdata',
-            logger: m => {
-                if (m.status === "recognizing text") {
-                    const pct = Math.round(m.progress * 100);
-                    progressBar.style.width = pct + "%";
-                    progressText.innerText = `Recognizing text: ${pct}%`;
-                } else progressText.innerText = m.status;
-            }
-        });
-
-        await ocrWorker.load();
-        await ocrWorker.loadLanguage(lang);
-        await ocrWorker.initialize(lang);
-        await ocrWorker.setParameters({
-            tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT,
-            tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
-            preserve_interword_spaces: "1",
-            tessedit_char_whitelist:
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÁČĎÉĚÍŇÓŘŠŤÚŮÝŽáčďéěíňóřšťúůýž0123456789.,:;-!?()[]/\\\"'<>@#$%^&*_+=~`|{} ",
-            textord_heavy_nr: "1",
-            textord_noise_hfract: "0.15",
-            load_system_dawg: "0",
-            load_freq_dawg: "0"
-        });
-
-        progressText.innerText = "OCR Ready";
-        ocrReady = true;
-    } catch (e) {
-        console.error(e);
-        showError("OCR Initialization failed: " + e.message);
-    }
+function showPanel(id) {
+    document.querySelectorAll(".panel").forEach(p => p.classList.add("hidden"));
+    const panel = document.getElementById(id);
+    if (panel) panel.classList.remove("hidden");
 }
 
 // ===========================
-// Run OCR
+// NOTIFICATIONS
 // ===========================
-async function runOCR() {
-    const file = document.getElementById("imageInput").files[0];
-    const progressBar = document.getElementById("progressBar");
-    const progressText = document.getElementById("progressText");
+function showNotification(msg, timeout = 3000) {
+    const container = document.getElementById("notificationContainer");
+    const text = document.getElementById("notificationText");
+    text.innerText = msg;
+    container.classList.remove("hidden");
+    setTimeout(() => container.classList.add("hidden"), timeout);
+}
+function showError(msg, timeout = 4000) {
+    const errorEl = document.getElementById("extractorErrors");
+    const msgEl = document.getElementById("extractorErrorMsg");
+    msgEl.innerText = msg;
+    errorEl.classList.remove("hidden");
+    setTimeout(() => errorEl.classList.add("hidden"), timeout);
+}
+
+// ===========================
+// OCR BUTTON HANDLER
+// ===========================
+async function onExtractTextClick() {
+    const fileInput = document.getElementById("imageInput");
     const textarea = document.getElementById("extractedText");
+    const progressBar = document.getElementById("progressBar");
 
-    if (!file) { showError("Select an image first."); return; }
+    const file = fileInput.files[0];
+    if (!file) { showError("Please select an image first."); return; }
 
+    lastImageFile = file;
     textarea.value = "";
     progressBar.style.width = "0%";
-    progressText.innerText = "Preparing image...";
 
-    if (!ocrReady) await initOCR();
+    showNotification("Starting OCR...");
 
     try {
-        // Preparation
-        const preparedBlob = await window.prepareImageForOCR(file);
-        lastImage = preparedBlob;
-
-        const url = URL.createObjectURL(preparedBlob);
-        const result = await ocrWorker.recognize(url);
-
-        let text = result.data.text;
-
-        // ===========================
-        // Automatic repair with number preservation
-        // ===========================
-        text = text.split('\n').map(line => {
-            line = line.trim();
-            if (line.length === 0) return "";
-
-            // Fix diacritics
-            line = line
-                .replace(/Á/g, 'Á').replace(/Č/g, 'Č').replace(/Ď/g, 'Ď')
-                .replace(/É/g, 'É').replace(/Ě/g, 'Ě').replace(/Í/g, 'Í')
-                .replace(/Ň/g, 'Ň').replace(/Ó/g, 'Ó').replace(/Ř/g, 'Ř')
-                .replace(/Š/g, 'Š').replace(/Ť/g, 'Ť').replace(/Ú/g, 'Ú')
-                .replace(/Ů/g, 'Ů').replace(/Ý/g, 'Ý').replace(/Ž/g, 'Ž')
-                .replace(/á/g, 'á').replace(/č/g, 'č').replace(/ď/g, 'ď')
-                .replace(/é/g, 'é').replace(/ě/g, 'ě').replace(/í/g, 'í')
-                .replace(/ň/g, 'ň').replace(/ó/g, 'ó').replace(/ř/g, 'ř')
-                .replace(/š/g, 'š').replace(/ť/g, 'ť')
-                .replace(/ú/g, 'ú').replace(/ů/g, 'ů')
-                .replace(/ý/g, 'ý').replace(/ž/g, 'ž');
-
-            // Keep leading number if exists
-            const match = line.match(/^(\d+\.)\s*(.*)$/);
-            if (match) line = match[1] + " " + match[2];
-
-            return line;
-        }).filter(line => line.length > 0).join('\n');
-
-        textarea.value = text;
+        const text = await runOCR(file);
         lastExtractedText = text;
-        saveLastText(text);
-        saveLastImage(preparedBlob);
-
+        textarea.value = text;
         progressBar.style.width = "100%";
-        progressText.innerText = "OCR Complete";
-        URL.revokeObjectURL(url);
+        showNotification("OCR completed!");
     } catch (e) {
-        console.error(e);
-        showError("OCR Failed: " + e.message);
+        showError("OCR execution failed: " + e.message);
     }
 }
 
 // ===========================
-// Theme & Language
+// THEME & LANGUAGE HANDLERS
 // ===========================
-document.getElementById("themeSelect").onchange = function () {
-    document.body.className = this.value;
-    localStorage.setItem("theme", this.value);
-};
-document.getElementById("langSelect").onchange = function () {
+function onThemeChange() {
+    const theme = document.getElementById("themeSelect").value;
+    document.body.className = theme;
+    localStorage.setItem("theme", theme);
+}
+
+function onLangChange() {
+    const lang = document.getElementById("langSelect").value;
+    // Reinitialize OCR for new language
     ocrReady = false;
-    initOCR();
-};
+    initOCR(lang);
+}
 
 // ===========================
-// Load Settings
+// EVENT BINDING
 // ===========================
 window.addEventListener("load", () => {
-    const saved = localStorage.getItem("theme") || "theme-green";
-    document.body.className = saved;
-    document.getElementById("themeSelect").value = saved;
+    // Restore theme
+    const savedTheme = localStorage.getItem("theme") || "theme-green";
+    document.body.className = savedTheme;
+    document.getElementById("themeSelect").value = savedTheme;
+
+    // Bind buttons
+    document.getElementById("extractBtn").addEventListener("click", onExtractTextClick);
+    document.getElementById("themeSelect").addEventListener("change", onThemeChange);
+    document.getElementById("langSelect").addEventListener("change", onLangChange);
+
+    // Listen for OCR progress
+    window.addEventListener('ocrProgress', e => {
+        const progressBar = document.getElementById("progressBar");
+        progressBar.style.width = e.detail + "%";
+    });
+    window.addEventListener('ocrReady', () => showNotification("OCR Ready"));
+    window.addEventListener('ocrError', e => showError("OCR Error: " + e.detail));
 });
