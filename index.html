@@ -1,47 +1,111 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
+
 <meta charset="UTF-8">
-<title>OCR Quiz Generator</title>
+<title>OCR Quiz App</title>
+
 <link rel="stylesheet" href="style.css">
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
 
 </head>
-<body class="dark">
 
-<header>
-<h1>OCR Quiz Generator</h1>
+<body class="theme-green">
 
-<select id="themeSelector">
-<option value="dark">Dark Green</option>
-<option value="black">Black</option>
-<option value="grey">Grey</option>
-</select>
+<div class="layout">
 
-</header>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
 
-<section class="card">
+        <h2>OCR Quiz</h2>
 
-<input type="file" id="imageInput">
+        <button onclick="showPanel('extractor')">
+            Extract Text
+        </button>
 
-<button onclick="runOCR()">Extract Text</button>
+        <button onclick="showPanel('quiz')">
+            Generate Quiz
+        </button>
 
-<textarea id="extractedText"></textarea>
+        <button onclick="showPanel('history')">
+            Past Quizzes
+        </button>
 
-<button onclick="generateQuiz()">Generate Quiz</button>
+        <button onclick="showPanel('settings')">
+            Settings
+        </button>
 
-</section>
+    </div>
 
-<section class="card">
 
-<div id="quizContainer"></div>
+    <!-- MAIN CONTENT -->
+    <div class="main">
 
-</section>
+
+        <!-- OCR PANEL -->
+        <div id="extractor" class="panel">
+
+            <h2>Text Extractor</h2>
+
+            <input type="file" id="imageInput">
+
+            <button onclick="runOCR()">
+                Extract Text
+            </button>
+
+            <textarea id="extractedText"></textarea>
+
+        </div>
+
+
+        <!-- QUIZ PANEL -->
+        <div id="quiz" class="panel hidden">
+
+            <h2>Quiz Generator</h2>
+
+            <button onclick="createQuiz()">
+                Generate Quiz From Text
+            </button>
+
+            <div id="quizArea"></div>
+
+        </div>
+
+
+        <!-- HISTORY PANEL -->
+        <div id="history" class="panel hidden">
+
+            <h2>Past Quizzes</h2>
+
+            <div id="historyArea"></div>
+
+        </div>
+
+
+        <!-- SETTINGS PANEL -->
+        <div id="settings" class="panel hidden">
+
+            <h2>Settings</h2>
+
+            <select id="themeSelect">
+
+                <option value="theme-green">Green</option>
+                <option value="theme-darkgrey">Dark Grey</option>
+                <option value="theme-black">Black</option>
+                <option value="theme-white">White</option>
+
+            </select>
+
+        </div>
+
+
+    </div>
+
+</div>
 
 <script src="app.js"></script>
-<script src="quiz.js"></script>
-<script src="storage.js"></script>
 
 </body>
 </html>
