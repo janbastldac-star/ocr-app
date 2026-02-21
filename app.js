@@ -1,15 +1,37 @@
 async function runOCR() {
 
-const file = document.getElementById("imageInput").files[0];
+    const input = document.getElementById("imageInput");
 
-if (!file) return;
+    if (!input.files || input.files.length === 0) {
+        alert("Please select an image first");
+        return;
+    }
 
-const result = await Tesseract.recognize(
-file,
-"eng"
-);
+    const file = input.files[0];
 
-document.getElementById("extractedText").value =
-result.data.text;
+    const imageURL = URL.createObjectURL(file);
 
+    try {
+
+        document.getElementById("extractedText").value = "Processing OCR...";
+
+        const result = await Tesseract.recognize(
+            imageURL,
+            "eng",
+            {
+                logger: m => console.log(m)
+            }
+        );
+
+        document.getElementById("extractedText").value =
+            result.data.text;
+
+    } catch (err) {
+
+        console.error(err);
+
+        document.getElementById("extractedText").value =
+            "OCR failed";
+
+    }
 }
