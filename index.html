@@ -1,88 +1,78 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OCR & Quiz Generator</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="ocr.js"></script>
-    <script src="app.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCR & Quiz App</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body class="theme-green">
 
-    <!-- ================= Sidebar ================= -->
-    <aside class="sidebar">
-        <h2>Menu</h2>
-        <button onclick="showPanel('textExtractor')">Text Extractor</button>
-        <button onclick="showPanel('quizGenerator')">Quiz Generator</button>
-        <button onclick="showPanel('settingsPanel')">Settings</button>
-    </aside>
+<div class="sidebar">
+    <h2>Menu</h2>
+    <button id="panelExtractorBtn">Text Extractor</button>
+    <button id="panelQuizBtn">Quiz Generator</button>
+    <button id="panelSettingsBtn">Settings</button>
+</div>
 
-    <!-- ================= Main Content ================= -->
-    <main class="main-content">
+<div class="main-content">
 
-        <!-- ===== Text Extractor Panel ===== -->
-        <section id="textExtractor" class="panel">
-            <h1>Text Extractor</h1>
-            <input type="file" id="imageInput" accept="image/*">
-            <button id="extractBtn">Extract Text</button>
-
-            <div class="progress-container">
-                <div id="progressBar" class="progress-bar"></div>
-            </div>
-            <div id="progressText" class="progress-text"></div>
-
-            <textarea id="extractedText" placeholder="Extracted text will appear here..." rows="15"></textarea>
-
-            <div id="extractorErrors" class="error hidden">
-                <span id="extractorErrorMsg"></span>
-            </div>
-        </section>
-
-        <!-- ===== Quiz Generator Panel ===== -->
-        <section id="quizGenerator" class="panel hidden">
-            <h1>Quiz Generator</h1>
-            <textarea id="quizSourceText" placeholder="Paste text to generate quiz..." rows="10"></textarea>
-            <button id="generateQuizBtn">Generate Quiz</button>
-            <div id="generatedQuiz"></div>
-        </section>
-
-        <!-- ===== Settings Panel ===== -->
-        <section id="settingsPanel" class="panel hidden">
-            <h1>Settings</h1>
-            <div class="setting">
-                <label for="themeSelect">Theme:</label>
-                <select id="themeSelect">
-                    <option value="theme-green">Green</option>
-                    <option value="theme-dark">Dark</option>
-                    <option value="theme-darkgrey">Dark Grey</option>
-                    <option value="theme-white">White</option>
-                </select>
-            </div>
-            <div class="setting">
-                <label for="langSelect">Language:</label>
-                <select id="langSelect">
-                    <option value="ces">Čeština (Czech)</option>
-                    <option value="eng">English</option>
-                </select>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- ================= Notifications ================= -->
-    <div id="notificationContainer" class="notification hidden">
-        <span id="notificationText"></span>
-    </div>
-
-    <!-- ================= Modal ================= -->
-    <div id="modalContainer" class="modal hidden">
-        <div class="modal-content">
-            <h2 id="modalTitle">Title</h2>
-            <p id="modalMessage">Message</p>
-            <button onclick="closeModal()">Close</button>
+    <!-- Text Extractor Panel -->
+    <div id="panelExtractor" class="panel">
+        <h1>Text Extractor</h1>
+        <input type="file" id="imageInput" accept="image/*">
+        <button id="extractBtn">Extract Text</button>
+        <div class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+        <textarea id="extractedText" placeholder="Extracted text will appear here..."></textarea>
+        <div id="extractorErrors" class="error hidden">
+            <span id="extractorErrorMsg"></span>
         </div>
     </div>
 
+    <!-- Quiz Generator Panel -->
+    <div id="panelQuiz" class="panel hidden">
+        <h1>Quiz Generator</h1>
+        <textarea id="quizInput" placeholder="Use extracted text to generate quiz..."></textarea>
+        <button id="generateQuizBtn">Generate Quiz</button>
+        <div id="quizOutput"></div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="panelSettings" class="panel hidden">
+        <h1>Settings</h1>
+        <label for="themeSelect">Theme:</label>
+        <select id="themeSelect">
+            <option value="theme-green">Green</option>
+            <option value="theme-dark">Dark</option>
+            <option value="theme-darkgrey">Dark Grey</option>
+            <option value="theme-white">White</option>
+        </select>
+
+        <label for="langSelect">Language:</label>
+        <select id="langSelect">
+            <option value="ces">Czech</option>
+            <option value="eng">English</option>
+        </select>
+    </div>
+
+</div>
+
+<!-- Notification -->
+<div id="notificationContainer" class="notification hidden">
+    <span id="notificationText"></span>
+</div>
+
+<!-- Modal -->
+<div id="modalContainer" class="modal hidden">
+    <div class="modal-content">
+        <h2 id="modalTitle"></h2>
+        <p id="modalMessage"></p>
+        <button id="modalCloseBtn">Close</button>
+    </div>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>

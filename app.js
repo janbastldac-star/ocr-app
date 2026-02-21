@@ -36,7 +36,27 @@ function showError(msg, timeout = 5000) {
 }
 
 // ===========================
-// OCR BUTTON HANDLER
+// MODAL HANDLING
+// ===========================
+function showModal(title, msg) {
+    const modal = document.getElementById("modalContainer");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalMsg = document.getElementById("modalMessage");
+    if (!modal || !modalTitle || !modalMsg) return;
+
+    modalTitle.innerText = title;
+    modalMsg.innerText = msg;
+    modal.classList.remove("hidden");
+}
+
+function closeModal() {
+    const modal = document.getElementById("modalContainer");
+    if (!modal) return;
+    modal.classList.add("hidden");
+}
+
+// ===========================
+// OCR HANDLER PLACEHOLDER
 // ===========================
 async function onExtractTextClick() {
     const fileInput = document.getElementById("imageInput");
@@ -45,7 +65,7 @@ async function onExtractTextClick() {
 
     if (!textarea || !progressBar) return;
 
-    textarea.value = "";          // clear on button click
+    textarea.value = ""; // clear on click
     progressBar.style.width = "0%";
 
     if (!fileInput || !fileInput.files[0]) {
@@ -56,23 +76,12 @@ async function onExtractTextClick() {
     const file = fileInput.files[0];
     lastImageFile = file;
 
-    if (typeof runOCR !== "function") {
-        showError("OCR modul není načten. Ujistěte se, že ocr.js je zahrnut a načten před app.js.");
-        return;
-    }
-
-    showNotification("Spouštím OCR...");
-    try {
-        const text = await runOCR(file);
-        lastExtractedText = text;
-        textarea.value = text || "";
-        if (!text || text.trim().length === 0) showError("OCR vrátil prázdný text.");
-        else showNotification("OCR dokončeno!");
+    // Placeholder: real OCR function to be added later
+    showNotification("OCR would run here...");
+    setTimeout(() => {
+        textarea.value = "Tady se zobrazí text po extrakci (OCR).";
         progressBar.style.width = "100%";
-    } catch (e) {
-        console.error("OCR selhalo:", e);
-        showError("OCR selhalo: " + e.message);
-    }
+    }, 1000);
 }
 
 // ===========================
@@ -89,10 +98,8 @@ function onThemeChange() {
 function onLangChange() {
     const langSelect = document.getElementById("langSelect");
     const lang = langSelect?.value || "ces";
-    if (typeof initOCR === "function") {
-        ocrReady = false;
-        initOCR(lang);
-    }
+    // Placeholder: reload OCR language when OCR added
+    showNotification("Language switched to " + lang);
 }
 
 // ===========================
@@ -109,10 +116,18 @@ window.addEventListener("DOMContentLoaded", () => {
     const themeSelectEl = document.getElementById("themeSelect");
     if (themeSelectEl) themeSelectEl.value = savedTheme;
 
-    // Bind buttons
-    const extractBtn = document.getElementById("extractBtn");
-    if (extractBtn) extractBtn.addEventListener("click", onExtractTextClick);
+    // Bind sidebar buttons
+    document.getElementById("panelExtractorBtn")?.addEventListener("click", () => showPanel("panelExtractor"));
+    document.getElementById("panelQuizBtn")?.addEventListener("click", () => showPanel("panelQuiz"));
+    document.getElementById("panelSettingsBtn")?.addEventListener("click", () => showPanel("panelSettings"));
 
+    // Bind extract button
+    document.getElementById("extractBtn")?.addEventListener("click", onExtractTextClick);
+
+    // Bind modal close button
+    document.getElementById("modalCloseBtn")?.addEventListener("click", closeModal);
+
+    // Bind theme and language
     themeSelectEl?.addEventListener("change", onThemeChange);
     document.getElementById("langSelect")?.addEventListener("change", onLangChange);
 });
