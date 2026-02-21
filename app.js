@@ -175,3 +175,5 @@ window.addEventListener("load", () => {
   document.body.className = saved;
   themeSelect.value = saved;
 });
+await runOCR(); 
+autoRepairIfNeeded();
