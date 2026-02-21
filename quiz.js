@@ -1,60 +1,73 @@
-function generateQuiz() {
+// =====================
+// QUIZ GENERATOR
+// =====================
+let currentQuiz=null;
 
-const text =
-document.getElementById("extractedText").value;
+function createQuiz(){
+  const text=document.getElementById("extractedText").value;
+  if(!text || text.length<10){alert("Extract more text first"); return;}
 
-const words = text.split(" ");
+  const lang=document.getElementById("langSelect").value;
 
-let questionWord =
-words[Math.floor(Math.random()*words.length)];
+  // Split text into sentences
+  let sentences=text.split(/[.?!]\s+/).filter(s=>s.length>5);
+  if(sentences.length<1){alert("Not enough sentences"); return;}
 
-let options = shuffle([
-questionWord,
-randomWord(words),
-randomWord(words),
-randomWord(words)
-]);
+  const correct=random(sentences);
+  let question,answer;
 
-let correctIndex =
-options.indexOf(questionWord);
+  if(lang==="ces"){
+    question=`Co je "${correct.split(" ")[0]}"?`;
+    answer=`${correct}`;
+  } else {
+    question=`What is "${correct.split(" ")[0]}"?`;
+    answer=`${correct}`;
+  }
 
-displayQuiz(questionWord, options, correctIndex);
+  // Generate 3 wrong options
+  let wrongs=shuffle(sentences.filter(s=>s!==correct)).slice(0,3);
+  const options=shuffle([answer,...wrongs]);
 
-saveQuiz(questionWord, options, correctIndex);
-
+  currentQuiz={question,options,correct:answer};
+  displayQuiz();
+  saveQuiz(currentQuiz);
 }
 
-function randomWord(words) {
-return words[Math.floor(Math.random()*words.length)];
+function displayQuiz(){
+  let html=`<div class="quiz-question">${currentQuiz.question}</div>`;
+  currentQuiz.options.forEach(opt=>{
+    html+=`<div class="quiz-options"><button onclick="answer('${opt.replace(/'/g,"\\'")}')">${opt}</button></div>`;
+  });
+  document.getElementById("quizArea").innerHTML=html;
 }
 
-function shuffle(array) {
-return array.sort(() => Math.random() - 0.5);
+function answer(selected){
+  if(selected===currentQuiz.correct) alert("Correct!");
+  else alert("Wrong! Correct answer: "+currentQuiz.correct);
 }
 
-function displayQuiz(question, options, correct) {
-
-let html = `<h3>Select the correct word:</h3>`;
-
-options.forEach((opt, i) => {
-
-html += `
-<button onclick="checkAnswer(${i},${correct})">
-${opt}
-</button><br>
-`;
-
-});
-
-document.getElementById("quizContainer").innerHTML = html;
-
+// =====================
+// QUIZ STORAGE
+// =====================
+function saveQuiz(quiz){
+  let quizzes=JSON.parse(localStorage.getItem("quizzes")||"[]");
+  quizzes.push(quiz);
+  localStorage.setItem("quizzes",JSON.stringify(quizzes));
 }
 
-function checkAnswer(selected, correct) {
-
-if(selected === correct)
-alert("Correct!");
-else
-alert("Wrong!");
-
+function loadHistory(){
+  const quizzes=JSON.parse(localStorage.getItem("quizzes")||"[]");
+  let html="";
+  quizzes.forEach(q=>{
+    html+=`<div class="history-item">${q.question}<br><b>Answer:</b> ${q.correct}</div>`;
+  });
+  document.getElementById("historyArea").innerHTML=html;
 }
+
+window.addEventListener("load",loadHistory);
+
+// =====================
+// HELPERS
+// =====================
+function random(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
