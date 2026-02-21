@@ -31,3 +31,13 @@ generateBtn.addEventListener('click', async () => {
   const data = await response.json();
   quizOutput.innerText = data.quiz;
 });
+Tesseract.recognize(
+  file,
+  'ces', // Czech language
+  {
+    logger: m => console.log(m),
+    langPath: 'https://tessdata.projectnaptha.com/4.0.0_best', // CDN for traineddata
+  }
+).then(({ data: { text } }) => {
+  ocrTextArea.value = text;
+});
